@@ -7,7 +7,7 @@ output: html_vignette
 ```{r library}
 library(laminr)
 db <- connect()
-db$track("H6pK9lWJeie00001", path = "example_analysis.Rmd")
+db$track("H6pK9lWJeie00002", path = "example_analysis.Rmd")
 ```
 
 ## Download a dataset from CELLxGENE
@@ -15,6 +15,7 @@ db$track("H6pK9lWJeie00001", path = "example_analysis.Rmd")
 ```{r connect-cellxgene}
 cellxgene <- connect("laminlabs/cellxgene")
 adata <- cellxgene$Artifact$get("7dVluLROpalzEh8mNyxk")$load()
+adata
 ```
 
 ## Marker analysis with Seurat
