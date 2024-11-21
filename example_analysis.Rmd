@@ -12,6 +12,8 @@ db$track("H6pK9lWJeie00002", path = "example_analysis.Rmd")
 
 ## Download a dataset from CELLxGENE
 
+Fetch dataset related to renal cell carcinoma ([`7dVluLROpalzEh8mNyxk`](https://lamin.ai/laminlabs/cellxgene/artifact/7dVluLROpalzEh8mNyxk)).
+
 ```{r connect-cellxgene}
 cellxgene <- connect("laminlabs/cellxgene")
 adata <- cellxgene$Artifact$get("7dVluLROpalzEh8mNyxk")$load()
@@ -23,26 +25,27 @@ adata
 Create a Seurat object
 
 ```{r create-seurat}
-seurat <- SeuratObject::CreateSeuratObject(
+library(Seurat)
+
+seurat <- CreateSeuratObject(
   counts = as(Matrix::t(adata$X), "CsparseMatrix"),
   meta.data = adata$obs,
 )
-SeuratObject::Idents(seurat) <- "Cell_Type"
+Idents(seurat) <- "cell_type"
 ```
 
 Normalise the data
 
 ```{r normalise}
-seurat <- Seurat::NormalizeData(seurat)
+seurat <- NormalizeData(seurat)
 ```
-
 
 Test for marker genes
 
 ```{r find-markers}
-markers <- Seurat::FindAllMarkers(
+markers <- FindAllMarkers(
   seurat,
-  features = SeuratObject::Features(seurat)[1:100] # Only test a few features for speed
+  features = Features(seurat)
 )
 
 knitr::kable(markers)
@@ -51,8 +54,15 @@ knitr::kable(markers)
 Plot the marker genes
 
 ```{r plot-marker}
-Seurat::DotPlot(seurat, features = unique(markers$gene)) +
-  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
+library(tidyverse)
+marker_sel <- markers %>%
+  group_by(gene) %>%
+  arrange(p_val) %>%
+  slice(1) %>%
+  ungroup()
+
+DotPlot(seurat, features = marker_sel$gene[1:10]) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
 ```
 
 ## Store for later use
