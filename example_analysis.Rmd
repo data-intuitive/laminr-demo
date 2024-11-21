@@ -7,7 +7,7 @@ output: html_vignette
 ```{r library}
 library(laminr)
 db <- connect()
-db$track("H6pK9lWJeie00000", path = "example_analysis.Rmd")
+db$track("H6pK9lWJeie00001", path = "example_analysis.Rmd")
 ```
 
 ## Download a dataset from CELLxGENE
@@ -19,31 +19,42 @@ adata <- cellxgene$Artifact$get("7dVluLROpalzEh8mNyxk")$load()
 
 ## Marker analysis with Seurat
 
+Create a Seurat object
+
 ```{r create-seurat}
-# Create a Seurat object
 seurat <- SeuratObject::CreateSeuratObject(
   counts = as(Matrix::t(adata$X), "CsparseMatrix"),
   meta.data = adata$obs,
 )
-# Set cell identities to the provided cell type annotation
 SeuratObject::Idents(seurat) <- "Cell_Type"
-# Normalise the data
+```
+
+Normalise the data
+
+```{r normalise}
 seurat <- Seurat::NormalizeData(seurat)
-seurat <- Seurat::ScaleData(seurat)
-# Test for marker genes (the output is a data.frame)
+```
+
+
+Test for marker genes
+
+```{r find-markers}
 markers <- Seurat::FindAllMarkers(
   seurat,
   features = SeuratObject::Features(seurat)[1:100] # Only test a few features for speed
 )
-# Display the marker genes
+
 knitr::kable(markers)
-# Plot the marker genes
-Seurat::DoHeatmap(seurat, features = markers$gene)
 ```
 
-## Store the results in LaminDB
+Plot the marker genes
 
-Any results can be saved to the default LaminDB instance.
+```{r plot-marker}
+Seurat::DotPlot(seurat, features = unique(markers$gene)) +
+  ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
+```
+
+## Store for later use
 
 ```{r save-results}
 db$Artifact$from_df(
