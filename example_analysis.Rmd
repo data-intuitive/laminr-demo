@@ -1,0 +1,68 @@
+---
+title: "Example analysis"
+output: html_vignette
+---
+
+
+```{r library}
+library(laminr)
+db <- connect()
+db$track("H6pK9lWJeie00000", path = "example_analysis.Rmd")
+```
+
+## Download a dataset from CELLxGENE
+
+```{r connect-cellxgene}
+cellxgene <- connect("laminlabs/cellxgene")
+adata <- cellxgene$Artifact$get("7dVluLROpalzEh8mNyxk")$load()
+```
+
+## Marker analysis with Seurat
+
+```{r create-seurat}
+# Create a Seurat object
+seurat <- SeuratObject::CreateSeuratObject(
+  counts = as(Matrix::t(adata$X), "CsparseMatrix"),
+  meta.data = adata$obs,
+)
+# Set cell identities to the provided cell type annotation
+SeuratObject::Idents(seurat) <- "Cell_Type"
+# Normalise the data
+seurat <- Seurat::NormalizeData(seurat)
+seurat <- Seurat::ScaleData(seurat)
+# Test for marker genes (the output is a data.frame)
+markers <- Seurat::FindAllMarkers(
+  seurat,
+  features = SeuratObject::Features(seurat)[1:100] # Only test a few features for speed
+)
+# Display the marker genes
+knitr::kable(markers)
+# Plot the marker genes
+Seurat::DoHeatmap(seurat, features = markers$gene)
+```
+
+## Store the results in LaminDB
+
+Any results can be saved to the default LaminDB instance.
+
+```{r save-results}
+db$Artifact$from_df(
+  markers,
+  description = "Marker genes for renal cell carcinoma dataset"
+)$save()
+
+seurat_path <- tempfile(fileext = ".rds")
+saveRDS(seurat, seurat_path)
+db$Artifact$from_path(
+  seurat_path,
+  description = "Seurat object for renal cell carcinoma dataset"
+)$save()
+```
+
+# Stop tracking
+
+When we are done we end the tracking run.
+
+```{r finish}
+db$finish()
+```
